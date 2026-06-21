@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privater Termin</title>
+  <meta name="theme-color" content="#0f1f3d" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:      #0f1f3d;
+      --navy-mid:  #162848;
+      --gold:      #c9a84c;
+      --gold-light:#e8c96a;
+      --gold-pale: #f5e8c0;
+      --cream:     #faf7f2;
+      --slate:     #6b7a99;
+      --border:    rgba(201,168,76,0.2);
+      --border2:   rgba(201,168,76,0.35);
+      --text:      #faf7f2;
+      --text2:     rgba(255,255,255,0.65);
+      --text3:     rgba(255,255,255,0.4);
+      --green:     #2ecc71;
+      --red:       #e74c3c;
+      --radius:    10px;
+      --radius-lg: 16px;
+    }
+    html, body {
+      min-height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      font-size: 15px;
+    }
+    h1,h2,h3 { font-family: 'Playfair Display', serif; }
+    body { display: flex; flex-direction: column; align-items: center; padding: 0 16px 60px; }
+
+    /* Noise texture */
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0; opacity:0.4;
+    }
+
+    .topbar {
+      display:flex; align-items:center; gap:16px;
+      padding:20px 0 16px; width:100%; max-width:600px;
+      border-bottom:1px solid var(--border); margin-bottom:8px;
+      position:relative; z-index:1;
+    }
+    .advisor-avatar {
+      width:52px; height:52px; border-radius:50%;
+      border:2px solid var(--gold); object-fit:cover; object-position:top;
+      background:var(--navy-mid); flex-shrink:0;
+    }
+    .logo-text { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--gold); }
+    .logo-sub  { font-size:12px; color:var(--text2); margin-top:2px; }
+
+    /* Private badge */
+    .private-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(201,168,76,0.12); border:1px solid var(--border2);
+      border-radius:20px; padding:3px 10px; font-size:11px; color:var(--gold);
+      font-weight:600; letter-spacing:.04em; margin-top:5px;
+    }
+
+    /* Steps bar */
+    .steps {
+      display:flex; align-items:center; gap:0;
+      margin:18px 0 0; width:100%; max-width:600px;
+      position:relative; z-index:1;
+    }
+    .step { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+    .step::after {
+      content:''; position:absolute; top:14px; left:50%; width:100%;
+      height:2px; background:rgba(201,168,76,0.2); z-index:0;
+    }
+    .step:last-child::after { display:none; }
+    .step-dot {
+      width:28px; height:28px; border-radius:50%; z-index:1;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:600;
+      background:var(--navy-mid); border:2px solid rgba(201,168,76,0.25); color:var(--text3);
+      transition:all .2s;
+    }
+    .step.active .step-dot  { background:var(--gold); border-color:var(--gold); color:var(--navy); }
+    .step.done .step-dot    { background:var(--green); border-color:var(--green); color:#fff; }
+    .step-label { font-size:10px; color:var(--text3); margin-top:5px; text-transform:uppercase; letter-spacing:.05em; }
+    .step.active .step-label { color:var(--gold); font-weight:600; }
+    .step.done .step-label   { color:var(--green); }
+
+    /* Cards */
+    .card {
+      background:rgba(22,40,72,0.9); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:28px 24px;
+      width:100%; max-width:600px; backdrop-filter:blur(10px);
+      position:relative; z-index:1;
+    }
+    .card + .card { margin-top:14px; }
+
+    /* Calendar */
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .cal-nav button {
+      background:rgba(201,168,76,0.1); border:1px solid var(--border2); color:var(--gold);
+      border-radius:8px; padding:6px 12px; cursor:pointer; font-size:16px; transition:all .15s;
+    }
+    .cal-nav button:hover { background:rgba(201,168,76,0.2); }
+    .cal-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--gold); }
+
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-day-header { text-align:center; font-size:11px; color:var(--text3); font-weight:600; padding:4px 0; text-transform:uppercase; }
+    .cal-day {
+      aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+      border-radius:8px; font-size:13px; font-weight:500; transition:all .15s; cursor:default;
+    }
+    .cal-day.empty   { background:transparent; }
+    .cal-day.past    { color:var(--text3); opacity:.35; }
+    .cal-day.free    { background:rgba(201,168,76,0.12); color:var(--gold); border:1px solid rgba(201,168,76,0.3); cursor:pointer; }
+    .cal-day.free:hover { background:rgba(201,168,76,0.25); }
+    .cal-day.selected { background:var(--gold); color:var(--navy); font-weight:700; }
+    .cal-day.today-ring { outline:2px solid var(--gold); outline-offset:1px; }
+
+    /* Time slots */
+    .time-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:4px; }
+    @media(max-width:500px){ .time-grid { grid-template-columns:repeat(3,1fr); } }
+    @media(max-width:380px){ .time-grid { grid-template-columns:repeat(2,1fr); } }
+    .time-slot {
+      padding:10px 6px; text-align:center; border-radius:8px; font-size:13px;
+      font-weight:500; cursor:pointer; transition:all .15s;
+      background:rgba(201,168,76,0.08); color:var(--gold);
+      border:1px solid rgba(201,168,76,0.25);
+    }
+    .time-slot:hover   { background:rgba(201,168,76,0.2); }
+    .time-slot.taken   { background:rgba(255,255,255,0.03); color:var(--text3); border-color:rgba(255,255,255,0.08); cursor:default; opacity:.5; }
+    .time-slot.selected { background:var(--gold); color:var(--navy); font-weight:700; border-color:var(--gold); }
+
+    /* Form */
+    .field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+    .field label { font-size:12px; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
+    .field input, .field textarea {
+      background:rgba(15,31,61,0.6); border:1px solid var(--border); color:var(--text);
+      border-radius:8px; padding:10px 14px; font-size:14px; font-family:inherit;
+      outline:none; transition:border-color .15s;
+    }
+    .field input:focus, .field textarea:focus { border-color:var(--gold); }
+    .field input::placeholder, .field textarea::placeholder { color:var(--text3); }
+
+    /* Buttons */
+    .btn-primary {
+      display:inline-flex; align-items:center; gap:7px; justify-content:center;
+      background:var(--gold); color:var(--navy); border:none; border-radius:var(--radius);
+      padding:12px 22px; font-size:14px; font-weight:700; cursor:pointer;
+      transition:background .15s, transform .1s; width:100%; margin-top:8px;
+      font-family:'DM Sans',sans-serif;
+    }
+    .btn-primary:hover    { background:var(--gold-light); }
+    .btn-primary:active   { transform:scale(0.98); }
+    .btn-primary:disabled { opacity:.5; cursor:default; }
+    .btn-ghost {
+      display:inline-flex; align-items:center; gap:6px; justify-content:center;
+      background:transparent; color:var(--text2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:11px 18px; font-size:14px; cursor:pointer;
+      transition:all .15s; font-family:'DM Sans',sans-serif;
+    }
+    .btn-ghost:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+
+    .section-title {
+      font-size:12px; font-weight:600; color:var(--gold); text-transform:uppercase;
+      letter-spacing:.08em; margin-bottom:16px;
+    }
+    .divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
+
+    /* Summary */
+    .summary-box {
+      background:rgba(15,31,61,0.5); border:1px solid var(--border);
+      border-radius:var(--radius); padding:16px; margin-bottom:16px;
+    }
+    .summary-row { display:flex; gap:10px; padding:8px 0; font-size:14px; border-bottom:1px solid rgba(201,168,76,0.1); }
+    .summary-row:last-child { border-bottom:none; }
+    .summary-key { color:var(--text3); min-width:110px; flex-shrink:0; font-size:13px; }
+    .summary-val { color:var(--text); font-weight:500; }
+
+    .success-icon { font-size:52px; color:var(--green); display:block; text-align:center; margin-bottom:12px; }
+    .error-msg { color:var(--red); font-size:13px; margin-top:8px; }
+
+    #loadingScreen {
+      position:fixed; inset:0; background:var(--navy);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:14px; z-index:999;
+    }
+    .spinner {
+      width:36px; height:36px; border:3px solid rgba(201,168,76,0.2);
+      border-top-color:var(--gold); border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes spinInline { to { transform:rotate(360deg); } }
+    .hidden { display:none !important; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .step-content { display:none; }
+    .step-content.active { display:block; }
+
+    /* Activity hint chips */
+    .hint-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .hint-chip {
+      padding:5px 12px; border-radius:16px; font-size:12px; cursor:pointer;
+      background:rgba(201,168,76,0.08); border:1px solid var(--border);
+      color:var(--text2); transition:all .15s;
+    }
+    .hint-chip:hover { background:rgba(201,168,76,0.18); color:var(--gold); border-color:var(--border2); }
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <span style="color:var(--text2);font-size:14px;">Wird geladen…</span>
+</div>
+
+<div class="topbar">
+  <img class="advisor-avatar" src="Charakter.png" alt="Profilbild" onerror="this.style.display='none'" />
+  <div>
+    <div class="logo-text" id="topbarName">Privater Termin</div>
+    <div class="logo-sub" id="topbarSub">Trag dir einfach einen Termin ein 👋</div>
+    <div class="private-badge"><i class="ti ti-lock" style="font-size:10px;"></i> Privat</div>
+  </div>
+</div>
+
+<div class="steps" id="stepsBar">
+  <div class="step active" id="stepDot1"><div class="step-dot">1</div><div class="step-label">Adresse</div></div>
+  <div class="step"        id="stepDot2"><div class="step-dot">2</div><div class="step-label">Vorhaben</div></div>
+  <div class="step"        id="stepDot3"><div class="step-dot">3</div><div class="step-label">Dauer</div></div>
+  <div class="step"        id="stepDot4"><div class="step-dot">4</div><div class="step-label">Datum & Zeit</div></div>
+  <div class="step"        id="stepDot5"><div class="step-dot">5</div><div class="step-label">Deine Daten</div></div>
+  <div class="step"        id="stepDot6"><div class="step-dot">6</div><div class="step-label">Bestätigung</div></div>
+</div>
+
+<!-- SCHRITT 0 – Adresse (neuer Einstieg) -->
+<div class="card step-content active" id="step1" data-addr-step="true" style="margin-top:16px;">
+  <div class="section-title">Deine Adresse</div>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Gib kurz deine Adresse an – damit ich weiß, wo du bist 📍</p>
+  <div class="field full">
+    <label>Straße und Hausnummer *</label>
+    <input type="text" id="addr_strasse" placeholder="Musterstraße 12" autocomplete="street-address" />
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:12px;">
+    <div class="field"><label>PLZ *</label><input type="text" id="addr_plz" placeholder="10115" autocomplete="postal-code" inputmode="numeric" maxlength="5" /></div>
+    <div class="field"><label>Ort *</label><input type="text" id="addr_ort" placeholder="Berlin" autocomplete="address-level2" /></div>
+  </div>
+  <p id="addrError" class="error-msg hidden">Bitte füll alle Adressfelder aus.</p>
+  <button class="btn-primary" id="step0Next" disabled style="margin-top:16px;">Weiter <i class="ti ti-arrow-right"></i></button>
+</div>
+
+<!-- SCHRITT 1 – Was hast du vor? -->
+<div class="card step-content" id="step2" style="margin-top:16px;">
+  <div class="section-title">Was hast du vor?</div>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Beschreib kurz, was ihr plant – z. B. Kino, Grillen, Spieleabend…</p>
+  <div class="field">
+    <label>Dein Vorhaben *</label>
+    <input type="text" id="s1_aktivitaet" placeholder="z. B. Kino" autocomplete="off" />
+    <div class="hint-chips">
+      <div class="hint-chip s1-chip" data-val="Bowling">🎳 Bowling</div>
+      <div class="hint-chip s1-chip" data-val="Grillen">🍖 Grillen</div>
+      <div class="hint-chip s1-chip" data-val="Kino">🎬 Kino</div>
+      <div class="hint-chip s1-chip" data-val="Essen gehen">🍽️ Essen gehen</div>
+      <div class="hint-chip s1-chip" data-val="Sport">⚽ Sport</div>
+      <div class="hint-chip s1-chip" data-val="Spieleabend">🎮 Spieleabend</div>
+      <div class="hint-chip s1-chip" data-val="Quatschen">☕ Quatschen</div>
+      <div class="hint-chip s1-chip" data-val="Sonstiges">✨ Sonstiges</div>
+    </div>
+  </div>
+  <p id="s1Error" class="error-msg hidden">Bitte gib an, was ihr vorhabt.</p>
+  <button class="btn-primary" id="step1Next" style="margin-top:8px;">
+    Weiter <i class="ti ti-arrow-right"></i>
+  </button>
+</div>
+
+<!-- SCHRITT 2 – Dauer -->
+<div class="card step-content" id="step3" style="margin-top:16px;">
+  <div class="section-title">Wie lange soll’s dauern?</div>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.6;">
+    Gib die geplante Gesamtdauer in Minuten ein.
+  </p>
+  <div class="field" style="margin-bottom:0;">
+    <div style="display:flex;align-items:center;gap:0;background:rgba(15,31,61,0.6);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s;" id="dauerWrap">
+      <input type="number" id="s2_dauer"
+        placeholder="90"
+        min="5" step="5"
+        inputmode="numeric"
+        style="flex:1;background:transparent;border:none;color:var(--text);padding:14px 16px;font-size:28px;font-weight:600;font-family:'DM Sans',sans-serif;outline:none;width:0;-moz-appearance:textfield;"
+      />
+      <span style="padding:0 20px 0 4px;font-size:15px;font-weight:500;color:var(--text3);white-space:nowrap;user-select:none;">Minuten</span>
+    </div>
+  </div>
+  <p id="s2Error" class="error-msg hidden" style="margin-top:8px;">Bitte gib eine gültige Dauer ein (mindestens 5 Minuten).</p>
+  <div style="display:flex;gap:8px;margin-top:20px;">
+    <button class="btn-ghost" id="step2Back" style="flex:1;margin-top:0;"><i class="ti ti-arrow-left"></i> Zurück</button>
+    <button class="btn-primary" id="step2Next" style="flex:2;margin-top:0;">Weiter <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<!-- SCHRITT 3 – Datum & Zeit -->
+<div class="card step-content" id="step4" style="margin-top:16px;">
+  <div class="cal-nav">
+    <button id="calPrev"><i class="ti ti-chevron-left"></i></button>
+    <span class="cal-title" id="calTitle"></span>
+    <button id="calNext"><i class="ti ti-chevron-right"></i></button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div id="timeSection" class="hidden" style="margin-top:20px;">
+    <hr class="divider" style="margin-top:0;" />
+    <div class="section-title" id="timeSectionTitle">Uhrzeit wählen</div>
+    <div class="time-grid" id="timeGrid"></div>
+    <p id="noTimesMsg" class="hidden" style="color:var(--text3);font-size:13px;margin-top:8px;">
+      An diesem Tag sind keine freien Zeiten mehr verfügbar.
+    </p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:18px;">
+    <button class="btn-ghost" id="step3Back" style="flex:1;margin-top:0;"><i class="ti ti-arrow-left"></i> Zurück</button>
+    <button class="btn-primary" id="step4Next" style="flex:2;margin-top:0;" disabled>Weiter <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<!-- SCHRITT 4 – Deine Daten -->
+<div class="card step-content" id="step5" style="margin-top:16px;">
+  <div class="section-title">Dein Name</div>
+
+  <div class="field">
+    <label>Dein Name *</label>
+    <input type="text" id="p_name" placeholder="Max Mustermann" autocomplete="given-name" />
+  </div>
+
+  <div class="field" style="margin-top:10px;">
+    <label>Telefonnummer <span style="font-size:11px;color:var(--text3);">(optional – für Rückfragen)</span></label>
+    <input type="tel" id="p_telefon" placeholder="+49 171 1234567" autocomplete="tel" />
+  </div>
+
+  <p id="formError" class="error-msg hidden">Bitte gib deinen Namen ein.</p>
+
+  <div style="display:flex;gap:8px;margin-top:4px;">
+    <button class="btn-ghost" id="step4Back" style="flex:1;margin-top:0;"><i class="ti ti-arrow-left"></i> Zurück</button>
+    <button class="btn-primary" id="step5Next" style="flex:2;margin-top:0;">Übersicht <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<!-- SCHRITT 5 – Zusammenfassung -->
+<div class="card step-content" id="step6" style="margin-top:16px;">
+  <div class="section-title">Zusammenfassung</div>
+  <div class="summary-box" id="summaryBox"></div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+    <i class="ti ti-info-circle" style="color:var(--gold);"></i>
+    Alles korrekt? Dann einfach absenden – der Termin wird direkt eingetragen.
+  </p>
+  <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text2);margin-bottom:10px;cursor:pointer;line-height:1.5;">
+    <input type="checkbox" id="datenschutzCheck" style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0;margin-top:2px;cursor:pointer;">
+    <span>Ich habe die <a href="datenschutz.html" target="_blank" style="color:var(--gold);text-decoration:underline;text-underline-offset:3px;">Datenschutzerklärung</a> gelesen und stimme der Verarbeitung der eingegebenen Daten zu. *</span>
+  </label>
+  <p id="datenschutzError" class="error-msg hidden">Bitte stimmen Sie der Datenschutzerklärung zu.</p>
+  <p id="submitError" class="error-msg hidden">Fehler beim Speichern. Bitte nochmal versuchen.</p>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-ghost" id="step5Back" style="flex:1;margin-top:0;"><i class="ti ti-arrow-left"></i> Zurück</button>
+    <button class="btn-primary" id="submitBtn" style="flex:2;margin-top:0;"><i class="ti ti-calendar-plus"></i> Termin eintragen</button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="card step-content hidden" id="stepSuccess" style="margin-top:16px;text-align:center;">
+  <i class="ti ti-circle-check success-icon"></i>
+  <h2 style="font-size:22px;margin-bottom:10px;color:var(--gold);">Anfrage gesendet!</h2>
+  <p id="successMsg" style="color:var(--text2);font-size:14px;line-height:1.7;"></p>
+  <div style="margin-top:20px;padding:16px;background:rgba(201,168,76,0.08);border:1px solid var(--border);border-radius:10px;">
+    <p style="font-size:13px;color:var(--text3);">Ich meld mich kurz zur Bestätigung 🎉</p>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, addDoc, getDocs,
+  query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBxiDftvsNOfElvrt8hhLaUA0HDoSyuK-g",
+  authDomain: "tracking-74513.firebaseapp.com",
+  projectId: "tracking-74513",
+  storageBucket: "tracking-74513.firebasestorage.app",
+  messagingSenderId: "621239887005",
+  appId: "1:621239887005:web:5b962abff5c9109a546074"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+// ── Zeitzonen-sicheres Pad ──
+const pad = n => String(n).padStart(2,'0');
+const $ = id => document.getElementById(id);
+const months   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+// ── Private Buchung: Dauer wird vom Nutzer eingegeben ──
+let SLOT_DURATION = 60;  // Minuten – wird in Step 2 gesetzt
+// ── Erlaubte Zeiten: 08:00–23:00 (letzter Start 23:00) ──
+const DAY_START = 8 * 60;   // 08:00 in Minuten
+const DAY_END   = 23 * 60;  // 23:00 – letzter möglicher Startpunkt
+
+let takenSlots = [];
+let selectedDate = null, selectedTime = null;
+let userDuration = 60;  // vom Nutzer eingegebene Dauer in Minuten
+let calYear, calMonth;
+
+function formatDateDE(y, m, d) {
+  return new Date(y, m, d).toLocaleDateString('de-DE',
+    { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+}
+
+// ── Init: Daten laden, Kalender starten ──
+async function init() {
+  // publicSettings für Google Kalender Keys
+  let settings = {};
+  try {
+    const settingsDoc = await getDoc(doc(db, 'publicSettings', 'main'));
+    if (settingsDoc.exists()) settings = settingsDoc.data();
+  } catch(e) { /* ohne Settings weitermachen */ }
+
+  // Bestehende callSlots laden (Kollisionscheck)
+  try {
+    const from = new Date().toISOString().slice(0,16);
+    const to   = new Date(Date.now() + 180 * 86400000).toISOString().slice(0,16);
+    const q = query(
+      collection(db, 'callSlots'),
+      where('datetime', '>=', from),
+      where('datetime', '<=', to)
+    );
+    const snap = await getDocs(q);
+    takenSlots = snap.docs.map(d => ({
+      datetime: d.data().datetime,
+      duration: d.data().apptDuration || 60
+    }));
+  } catch(e) { takenSlots = []; }
+
+  // Google Kalender laden
+  try {
+    const gcalSlots = await loadGoogleCalendarBusySlots(settings);
+    takenSlots = [...takenSlots, ...gcalSlots];
+  } catch(e) { console.warn('GCal:', e.message); }
+
+  initCalendar();
+  $('loadingScreen').classList.add('hidden');
+
+  // ── URL-Parameter: Name und Telefon vorausfüllen + Topbar personalisieren ──
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlName = params.get('name') || '';
+    const urlTel  = params.get('tel')  || '';
+
+    if (urlName) {
+      // Formularfeld vorausfüllen
+      const nameInput = $('p_name');
+      if (nameInput) nameInput.value = urlName;
+
+      // Topbar personalisieren: "Hallo [Vorname]!" statt "Privater Termin"
+      const vorname = urlName.split(' ')[0];
+      $('topbarName').textContent = 'Hallo ' + vorname + '! 👋';
+      $('topbarSub').textContent  = 'Trag dir einfach einen Termin ein';
+    }
+    if (urlTel) {
+      const telInput = $('p_telefon');
+      if (telInput) telInput.value = urlTel;
+    }
+  } catch(e) { /* ignorieren */ }
+}
+
+// ── Kollisions-Check ──
+function slotConflicts(isoStr, newDur) {
+  const newStart = new Date(isoStr).getTime();
+  const newEnd   = newStart + newDur * 60000;
+  return takenSlots.some(slot => {
+    const existing = typeof slot === 'string' ? slot : slot.datetime;
+    const existDur = typeof slot === 'object' ? (slot.duration || 60) : 60;
+    const exStart  = new Date(existing.slice(0,16)).getTime();
+    const exEnd    = exStart + existDur * 60000;
+    return newStart < exEnd && newEnd > exStart;
+  });
+}
+
+// ── Kalender ──
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCalendar();
+  $('calPrev').addEventListener('click', () => {
+    const now = new Date();
+    if (calYear === now.getFullYear() && calMonth === now.getMonth()) return;
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  });
+  $('calNext').addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar();
+  });
+}
+
+function renderCalendar() {
+  $('calTitle').textContent = `${months[calMonth]} ${calYear}`;
+  const grid = $('calGrid');
+  grid.innerHTML = '';
+  dayNames.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-day-header'; h.textContent = d; grid.appendChild(h);
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const leadingBlanks = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  for (let b = 0; b < leadingBlanks; b++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(calYear, calMonth, d);
+    const el = document.createElement('div');
+    el.textContent = d; el.className = 'cal-day';
+    const isPast  = date < today;
+    const isToday = date.toDateString() === today.toDateString();
+    const isSel   = selectedDate &&
+      selectedDate.year === calYear &&
+      selectedDate.month === calMonth &&
+      selectedDate.day === d;
+    if (isPast) {
+      el.classList.add('past');
+    } else {
+      el.classList.add('free');
+      el.addEventListener('click', () => selectDay(calYear, calMonth, d));
+    }
+    if (isToday && !isPast) el.classList.add('today-ring');
+    if (isSel) { el.classList.remove('free'); el.classList.add('selected'); }
+    grid.appendChild(el);
+  }
+}
+
+function selectDay(y, m, d) {
+  selectedDate = { year:y, month:m, day:d }; selectedTime = null;
+  $('step4Next').disabled = true;
+  renderCalendar();
+  renderTimeSlots(y, m, d);
+  $('timeSection').classList.remove('hidden');
+  setTimeout(() => $('timeSection').scrollIntoView({ behavior:'smooth', block:'nearest' }), 100);
+}
+
+function renderTimeSlots(y, m, d) {
+  const grid = $('timeGrid');
+  grid.innerHTML = ''; $('noTimesMsg').classList.add('hidden');
+
+  const now   = new Date();
+  const slots = [];
+
+  for (let t = DAY_START; t + SLOT_DURATION <= DAY_END + SLOT_DURATION; t += 60) {
+    // Letzter erlaubter Start ist DAY_END (23:00), Slot endet dann 00:00 – wir stoppen bei 23:00
+    if (t > DAY_END) break;
+    const slotH   = Math.floor(t / 60);
+    const slotMin = t % 60;
+    const timeStr = `${pad(slotH)}:${pad(slotMin)}`;
+    const isoStr  = `${y}-${pad(m+1)}-${pad(d)}T${timeStr}`;
+    const slotDate = new Date(y, m, d, slotH, slotMin);
+    if (slotDate <= now) continue; // vergangene Slots heute überspringen
+    const isTaken = slotConflicts(isoStr, SLOT_DURATION);
+    slots.push({ timeStr, isoStr, isTaken });
+  }
+
+  if (slots.length === 0) { $('noTimesMsg').classList.remove('hidden'); return; }
+
+  $('timeSectionTitle').textContent =
+    `Uhrzeit – ${new Date(y, m, d).toLocaleDateString('de-DE',
+      { weekday:'long', day:'2-digit', month:'long' })}`;
+
+  slots.forEach(sl => {
+    const btn = document.createElement('div');
+    btn.className = 'time-slot' + (sl.isTaken ? ' taken' : '');
+    btn.textContent = sl.timeStr + ' Uhr';
+    if (!sl.isTaken) {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.time-slot').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedTime = sl.timeStr;
+        $('step4Next').disabled = false;
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+// ── Steps ──
+function goStep(n) {
+  document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+  $(`step${n}`).classList.add('active');
+  const total = 6;
+  for (let i = 1; i <= total; i++) {
+    const dot = $(`stepDot${i}`);
+    dot.classList.remove('active','done');
+    if (i < n) dot.classList.add('done');
+    else if (i === n) dot.classList.add('active');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Step 1: Was hast du vor? ──
+$('step1Next').addEventListener('click', () => {
+  const akt = $('s1_aktivitaet').value.trim();
+  if (!akt) { $('s1Error').classList.remove('hidden'); return; }
+  $('s1Error').classList.add('hidden');
+  goStep(3);
+});
+
+document.querySelectorAll('.s1-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    $('s1_aktivitaet').value = chip.dataset.val;
+    $('s1_aktivitaet').focus();
+    $('s1Error').classList.add('hidden');
+  });
+});
+
+// ── Step 2: Dauer eingeben ──
+$('step2Back').addEventListener('click', () => goStep(2));
+$('step2Next').addEventListener('click', () => {
+  const val = parseInt($('s2_dauer').value, 10);
+  if (!val || val < 5) { $('s2Error').classList.remove('hidden'); return; }
+  $('s2Error').classList.add('hidden');
+  userDuration  = val;
+  SLOT_DURATION = val;
+  // Kalenderauswahl zurücksetzen, falls Dauer geändert wurde
+  selectedDate = null; selectedTime = null;
+  $('timeSection').classList.add('hidden');
+  $('step4Next').disabled = true;
+  goStep(4);
+});
+
+$('s2_dauer').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('step2Next').click();
+});
+$('s2_dauer').addEventListener('focus', () => {
+  $('dauerWrap').style.borderColor = 'var(--gold)';
+});
+$('s2_dauer').addEventListener('blur', () => {
+  $('dauerWrap').style.borderColor = '';
+});
+
+// ── Step 3: Datum & Zeit ──
+$('step3Back').addEventListener('click', () => goStep(3));
+$('step4Next').addEventListener('click', () => {
+  if (!selectedDate || !selectedTime) return;
+  goStep(5);
+});
+
+// ── Step 4: Name ──
+$('step4Back').addEventListener('click', () => goStep(4));
+$('step5Next').addEventListener('click', () => {
+  const name = $('p_name').value.trim();
+  if (!name) { $('formError').classList.remove('hidden'); return; }
+  $('formError').classList.add('hidden');
+  buildSummary(); goStep(6);
+});
+
+$('step5Back').addEventListener('click', () => goStep(5));
+
+// ── Summary ──
+function buildSummary() {
+  const { year:y, month:m, day:d } = selectedDate;
+  const name    = $('p_name').value.trim();
+  const telefon = $('p_telefon').value.trim();
+  const akt  = $('s1_aktivitaet').value.trim();
+  const durH = Math.floor(SLOT_DURATION / 60);
+  const durM = SLOT_DURATION % 60;
+  const durLabel = durH > 0
+    ? (durM > 0 ? `${durH} Std ${durM} Min` : `${durH} Std`)
+    : `${SLOT_DURATION} Min`;
+  $('summaryBox').innerHTML = `
+    <div class="summary-row"><span class="summary-key">Vorhaben</span><span class="summary-val">${akt}</span></div>
+    <div class="summary-row"><span class="summary-key">Dauer</span><span class="summary-val">${durLabel}</span></div>
+    <div class="summary-row"><span class="summary-key">Datum</span><span class="summary-val">${formatDateDE(y,m,d)}</span></div>
+    <div class="summary-row"><span class="summary-key">Uhrzeit</span><span class="summary-val">${selectedTime} Uhr</span></div>
+    <div class="summary-row"><span class="summary-key">Name</span><span class="summary-val">${name}</span></div>
+    ${telefon ? `<div class="summary-row"><span class="summary-key">Telefon</span><span class="summary-val">${telefon}</span></div>` : ''}
+  `;
+}
+
+// ── Submit ──
+$('submitBtn').addEventListener('click', async () => {
+  $('datenschutzError').classList.add('hidden');
+  if (!$('datenschutzCheck').checked) {
+    $('datenschutzError').classList.remove('hidden');
+    return;
+  }
+  $('submitBtn').disabled = true;
+  $('submitBtn').innerHTML = '<i class="ti ti-loader" style="display:inline-block;animation:spinInline .7s linear infinite;"></i> Wird eingetragen…';
+  $('submitError').classList.add('hidden');
+
+  const { year:y, month:m, day:d } = selectedDate;
+  const iso     = `${y}-${pad(m+1)}-${pad(d)}T${selectedTime}`;
+  const name    = $('p_name').value.trim();
+  const telefon = $('p_telefon').value.trim();
+  const akt     = $('s1_aktivitaet').value.trim();
+
+  // Vorname / Nachname aus vollem Namen ableiten
+  const nameParts = name.split(' ');
+  const vorname   = nameParts[0] || name;
+  const nachname  = nameParts.slice(1).join(' ') || '';
+
+  try {
+    // ── 1. Kontakt in contacts-Collection anlegen (best-effort) ──────────────────
+    // Schlägt bei Firestore-Berechtigungsfehler still fehl – der Slot wird trotzdem gespeichert.
+    // type:'private' → strikte Datentrennung von Mandanten-Kontakten (type:'business')
+    let contactId = null;
+    // ── Kontaktdaten für das callSlot-Dokument (werden immer mitgespeichert) ──
+    const contactPayload = {
+      vorname,
+      nachname,
+      telefon: telefon || '',
+      email:   '',
+      ort:     '',
+      thema:   akt,
+      quelle:  'Privates Buchungsformular',
+      status:  'Neu',
+      type:    'private',
+      notizen: '',
+      privateContact: true,
+      createdAt: serverTimestamp(),
+      history: [{
+        type: 'anfrage',
+        datetime: iso,
+        note: `[Private Anfrage] ${akt}`,
+        followup: null,
+      }],
+    };
+    try {
+      // Erst: Duplikat-Check über Telefonnummer (falls angegeben)
+      if (telefon) {
+        try {
+          const existing = await getDocs(query(collection(db, 'contacts'), where('telefon', '==', telefon)));
+          if (!existing.empty) contactId = existing.docs[0].id;
+        } catch(_) { /* getDocs schlägt fehl → weiter zur Neuanlage */ }
+      }
+      // Neuanlage falls kein bestehender Kontakt gefunden
+      if (!contactId) {
+        const ref = await addDoc(collection(db, 'contacts'), contactPayload);
+        contactId = ref.id;
+        console.log('Kontakt angelegt:', contactId);
+      }
+    } catch (contactErr) {
+      // Berechtigungsfehler (Firestore Security Rules erlauben keinen Gäste-Write auf contacts)
+      // → Kontaktdaten werden trotzdem im callSlot gespeichert (contactSnapshot-Feld)
+      // → Lösung: Firestore Rule anpassen (siehe Kommentar unten) oder bookingRequests nutzen
+      console.warn('contacts-Write verweigert:', contactErr.code, contactErr.message);
+      // Fallback: Kontaktdaten direkt in bookingRequests sichern (keine Auth nötig)
+      try {
+        const fallbackRef = await addDoc(collection(db, 'bookingRequests'), {
+          ...contactPayload,
+          source: 'private-booking-contact-fallback',
+          bookingDatetime: iso,
+        });
+        console.log('Kontakt als bookingRequest gesichert:', fallbackRef.id);
+      } catch(fbErr) {
+        console.warn('Auch bookingRequests-Fallback fehlgeschlagen:', fbErr.message);
+      }
+      contactId = null;
+    }
+
+    // ── 2. Termin-Anfrage speichern (type:'anfrage', noch nicht bestätigt) ────────
+    // privateBooking:true → strikte Datentrennung von Mandanten-Anfragen
+    await addDoc(collection(db, 'callSlots'), {
+      datetime:       iso,
+      type:           'anfrage',
+      status:         'anfrage',
+      apptType:       akt,
+      apptDuration:   SLOT_DURATION,
+      apptColor:      '#c9a84c',
+      note:           `Private Anfrage: ${name} – ${akt}`,
+      privateBooking: true,
+      bookedBy:       name,
+      vorname,
+      nachname,
+      telefon:        telefon || '',
+      contactId:      contactId || null,
+      createdAt:      serverTimestamp(),
+    });
+
+    $('successMsg').innerHTML =
+      `<strong style="color:var(--gold);">${name}</strong> hat einen Termin für
+       <strong style="color:var(--gold);">${akt}</strong> angefragt –
+       am ${formatDateDE(y, m, d)} um ${selectedTime} Uhr.<br><br>
+       <span style="color:var(--text3);font-size:12px;">Der Termin wird bestätigt, sobald er genehmigt wurde.</span>`;
+
+    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+    $('stepSuccess').classList.remove('hidden');
+    $('stepSuccess').classList.add('active');
+    $('stepsBar').classList.add('hidden');
+
+  } catch(e) {
+    console.error(e);
+    $('submitError').classList.remove('hidden');
+    $('submitBtn').disabled = false;
+    $('submitBtn').innerHTML = '<i class="ti ti-calendar-plus"></i> Termin anfragen';
+  }
+});
+
+// ── Google Kalender: belegte Slots laden ──
+async function loadGoogleCalendarBusySlots(settings) {
+  if (!settings) return [];
+  const calendars = [
+    { id: settings.gcalId,  key: settings.gcalKey  },
+    { id: settings.gcalId2, key: settings.gcalKey2 },
+  ].filter(c => c.id && c.key);
+  if (calendars.length === 0) return [];
+
+  const timeMin = new Date().toISOString();
+  const timeMax = new Date(Date.now() + 180 * 86400000).toISOString();
+  const busyIsos = [];
+
+  for (const cal of calendars) {
+    try {
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events`
+        + `?key=${cal.key}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+        + `&singleEvents=true&orderBy=startTime&maxResults=500`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const ev of data.items || []) {
+        // Ganztägige Events → ganzen Tag sperren
+        if (ev.start?.date && !ev.start?.dateTime) {
+          const startDay = new Date(ev.start.date);
+          const endDay   = new Date(ev.end?.date || ev.start.date);
+          for (let dd = new Date(startDay); dd < endDay; dd.setDate(dd.getDate() + 1)) {
+            for (let h = 0; h < 24; h++) {
+              for (const mm of [0, 30]) {
+                const iso = `${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())}T${pad(h)}:${pad(mm)}`;
+                busyIsos.push({ datetime: iso, duration: 30 });
+              }
+            }
+          }
+          continue;
+        }
+        // Timed Events
+        if (ev.start?.dateTime) {
+          const start = new Date(ev.start.dateTime);
+          const end   = new Date(ev.end?.dateTime || ev.start.dateTime);
+          const durationMin = Math.max(30, Math.ceil((end - start) / 60000));
+          const iso = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`;
+          busyIsos.push({ datetime: iso, duration: durationMin });
+        }
+      }
+    } catch(e) {
+      console.warn(`GCal busy load fehlgeschlagen (${cal.id}):`, e.message);
+    }
+  }
+  return busyIsos;
+}
+
+init();
+
+// ── Schritt 0: Adresse ──────────────────────────────────────────────────────
+(function() {
+  const addrInputs = ['addr_strasse', 'addr_plz', 'addr_ort'];
+  function checkAddr() {
+    const filled = addrInputs.every(id => $(id).value.trim().length > 0);
+    $('step0Next').disabled = !filled;
+  }
+  addrInputs.forEach(id => $(id).addEventListener('input', checkAddr));
+  $('step0Next').addEventListener('click', () => {
+    const strasse = $('addr_strasse').value.trim();
+    const plz     = $('addr_plz').value.trim();
+    const ort     = $('addr_ort').value.trim();
+    if (!strasse || !plz || !ort) { $('addrError').classList.remove('hidden'); return; }
+    $('addrError').classList.add('hidden');
+    goStep(2);
+  });
+})();
+
+</script>
+</body>
+</html>
