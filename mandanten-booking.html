@@ -373,7 +373,7 @@ function formatDateDE(y, m, d) {
 }
 
 const params = new URLSearchParams(location.search);
-const linkId = params.get('lid') || new URLSearchParams(location.hash.replace(/^#/,'')).get('lid') || '';
+const linkId = params.get('lid');
 
 // ── Mitarbeiter-Modus: URL-Parameter auslesen ────────────────────────────────
 // ?mitarbeiter=1 aktiviert den internen Modus
@@ -568,16 +568,16 @@ function buildApptTypes() {
     });
     wrap.appendChild(pill);
   });
-  // Wenn ?autobook=1: Erstgespräch (30 Min) fest setzen und direkt zu Datum & Zeit
-  const autoBook = params.get('autobook') === '1';
-  if (autoBook) {
-    selectedApptType = { name: 'Erstgespräch', color: '#c9a84c', duration: 30 };
+  // Erstgespräch immer vorauswählen
+  wrap.querySelector('.appt-type-pill')?.click();
+
+  // Wenn ?autobook=1: Terminart-Schritt komplett überspringen
+  if (params.get('autobook') === '1') {
+    selectedApptType = types[0] || { name: 'Erstgespräch', color: '#c9a84c', duration: 30 };
     if (!calInitialized) { initCalendar(); calInitialized = true; }
     goStep(3);
     return;
   }
-
-  wrap.querySelector('.appt-type-pill')?.click();
 
   if (kontextLabel) {
     if (!calInitialized) { initCalendar(); calInitialized = true; }
