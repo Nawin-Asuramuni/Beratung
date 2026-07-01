@@ -1,0 +1,28 @@
+name: Termin-Mails versenden
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # alle 30 Minuten – GitHub führt das leider oft verspätet aus, s. repository_dispatch unten
+  workflow_dispatch:         # erlaubt manuellen Start über den "Run workflow"-Button zum Testen
+  repository_dispatch:       # erlaubt pünktlichen externen Anstoß (z.B. über cron-job.org)
+    types: [send-emails]
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        run: npm install firebase-admin nodemailer
+
+      - name: Termin-Mails prüfen und versenden
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node scripts/send-scheduled-emails.js
