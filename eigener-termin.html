@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eigener Termin – Persönlicher Buchungsassistent</title>
+  <meta name="theme-color" content="#0f1f3d" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0f1f3d;
+      --navy-mid:#162848;
+      --gold:    #c9a84c;
+      --gold-light:#e8c96a;
+      --amber:   #f59e0b;
+      --cream:   #faf7f2;
+      --slate:   #6b7a99;
+      --border:  rgba(201,168,76,0.2);
+      --border2: rgba(201,168,76,0.35);
+      --text:    #faf7f2;
+      --text2:   rgba(255,255,255,0.65);
+      --text3:   rgba(255,255,255,0.4);
+      --green:   #2ecc71;
+      --red:     #e74c3c;
+      --radius:  10px;
+      --radius-lg:16px;
+    }
+    html, body {
+      min-height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      font-size: 15px;
+    }
+    h1,h2,h3 { font-family: 'Playfair Display', serif; }
+    body { display: flex; flex-direction: column; align-items: center; padding: 0 16px 60px; }
+
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0; opacity:0.4;
+    }
+
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      padding:20px 0 16px; width:100%; max-width:600px;
+      border-bottom:1px solid var(--border); margin-bottom:8px;
+      position:relative; z-index:1;
+    }
+    .topbar-title { display:flex; align-items:center; gap:12px; }
+    .topbar-icon {
+      width:44px; height:44px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:20px;
+      background:rgba(245,158,11,0.12); border:2px solid var(--amber); color:var(--amber);
+    }
+    .logo-text { font-family:'Playfair Display',serif; font-size:17px; font-weight:700; color:var(--amber); }
+    .logo-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+    .back-link {
+      display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text2);
+      text-decoration:none; border:1px solid var(--border); border-radius:var(--radius);
+      padding:8px 12px; transition:all .15s; white-space:nowrap; flex-shrink:0;
+    }
+    .back-link:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+
+    .card {
+      background:rgba(22,40,72,0.9); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:24px 22px;
+      width:100%; max-width:600px; backdrop-filter:blur(10px);
+      position:relative; z-index:1; margin-top:14px;
+    }
+    .section-title {
+      font-size:12px; font-weight:600; color:var(--amber); text-transform:uppercase;
+      letter-spacing:.08em; margin-bottom:14px;
+    }
+    .divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
+
+    /* Appointment type pills */
+    .appt-type-pill {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 16px; border-radius:24px; font-size:13px; font-weight:500;
+      cursor:pointer; border:2px solid transparent; transition:all .15s;
+      background:rgba(255,255,255,0.04);
+    }
+    .appt-type-pill.selected { border-color:currentColor; background:rgba(245,158,11,0.12); }
+    .appt-type-pill-wrap { display:flex; flex-wrap:wrap; gap:8px; }
+
+    /* Form fields */
+    .form-grid { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
+    @media(max-width:440px){ .form-grid { grid-template-columns:1fr; } }
+    .field { display:flex; flex-direction:column; gap:5px; }
+    .field.full { grid-column:1/-1; }
+    .field label { font-size:12px; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
+    .field input, .field select, .field textarea {
+      background:rgba(15,31,61,0.6); border:1px solid var(--border); color:var(--text);
+      border-radius:8px; padding:10px 14px; font-size:14px; font-family:inherit;
+      outline:none; transition:border-color .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--amber); }
+    .field input::placeholder, .field textarea::placeholder { color:var(--text3); }
+    .field select option { background:var(--navy-mid); }
+
+    /* Calendar */
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .cal-nav button {
+      background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.35); color:var(--amber);
+      border-radius:8px; padding:6px 12px; cursor:pointer; font-size:16px; transition:all .15s;
+    }
+    .cal-nav button:hover { background:rgba(245,158,11,0.2); }
+    .cal-nav button:disabled { opacity:.3; cursor:default; }
+    .cal-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--amber); }
+
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-day-header { text-align:center; font-size:11px; color:var(--text3); font-weight:600; padding:4px 0; text-transform:uppercase; }
+    .cal-day {
+      aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+      border-radius:8px; font-size:13px; font-weight:500; transition:all .15s; cursor:default;
+    }
+    .cal-day.empty   { background:transparent; }
+    .cal-day.past    { color:var(--text3); opacity:.35; }
+    .cal-day.free    { background:rgba(245,158,11,0.1); color:var(--amber); border:1px solid rgba(245,158,11,0.3); cursor:pointer; }
+    .cal-day.free:hover { background:rgba(245,158,11,0.22); }
+    .cal-day.selected { background:var(--amber); color:var(--navy); font-weight:700; }
+    .cal-day.today-ring { outline:2px solid var(--amber); outline-offset:1px; }
+
+    /* Time slots */
+    .time-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:4px; }
+    @media(max-width:440px){ .time-grid { grid-template-columns:repeat(3,1fr); } }
+    .time-slot {
+      padding:10px 6px; text-align:center; border-radius:8px; font-size:13px;
+      font-weight:500; cursor:pointer; transition:all .15s;
+      background:rgba(245,158,11,0.08); color:var(--amber);
+      border:1px solid rgba(245,158,11,0.25);
+    }
+    .time-slot:hover   { background:rgba(245,158,11,0.2); }
+    .time-slot.taken   { background:rgba(255,255,255,0.03); color:var(--text3); border-color:rgba(255,255,255,0.08); cursor:default; opacity:.5; }
+    .time-slot.selected { background:var(--amber); color:var(--navy); font-weight:700; border-color:var(--amber); }
+
+    /* Buttons */
+    .btn-primary {
+      display:inline-flex; align-items:center; gap:7px; justify-content:center;
+      background:var(--amber); color:var(--navy); border:none; border-radius:var(--radius);
+      padding:12px 22px; font-size:14px; font-weight:700; cursor:pointer;
+      transition:background .15s, transform .1s; width:100%; margin-top:8px;
+      font-family:'DM Sans',sans-serif;
+    }
+    .btn-primary:hover { background:var(--gold-light); }
+    .btn-primary:active { transform:scale(0.98); }
+    .btn-primary:disabled { opacity:.5; cursor:default; }
+    .btn-ghost {
+      display:inline-flex; align-items:center; gap:6px; justify-content:center;
+      background:transparent; color:var(--text2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:11px 18px; font-size:14px; cursor:pointer;
+      transition:all .15s; font-family:'DM Sans',sans-serif;
+    }
+    .btn-ghost:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+
+    .success-icon { font-size:52px; color:var(--green); display:block; text-align:center; margin-bottom:12px; }
+    .error-msg { color:var(--red); font-size:13px; margin-top:8px; }
+    .hint { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:14px; }
+
+    #loadingScreen {
+      position:fixed; inset:0; background:var(--navy);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:14px; z-index:999;
+    }
+    .spinner {
+      width:36px; height:36px; border:3px solid rgba(245,158,11,0.2);
+      border-top-color:var(--amber); border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes spinInline { to { transform:rotate(360deg); } }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <span style="color:var(--text2);font-size:14px;">Termine werden geladen…</span>
+</div>
+
+<div class="topbar">
+  <div class="topbar-title">
+    <div class="topbar-icon"><i class="ti ti-lock"></i></div>
+    <div>
+      <div class="logo-text">Eigener Termin</div>
+      <div class="logo-sub">Nur für dich – persönlicher Slot im Wochenplan</div>
+    </div>
+  </div>
+  <a href="tracker.html" class="back-link"><i class="ti ti-arrow-left"></i> Zurück</a>
+</div>
+
+<!-- TERMINART -->
+<div class="card">
+  <div class="section-title">Terminart</div>
+  <div class="appt-type-pill-wrap" id="apptTypeList"></div>
+</div>
+
+<!-- BEZEICHNUNG & DAUER -->
+<div class="card">
+  <div class="section-title">Details</div>
+  <div class="form-grid">
+    <div class="field full">
+      <label>Bezeichnung *</label>
+      <input type="text" id="b_title" placeholder="z.B. Zahnarzt, Sport, Behördengang…" maxlength="60" />
+    </div>
+    <div class="field full">
+      <label>Dauer</label>
+      <select id="b_duration">
+        <option value="15">15 Minuten</option>
+        <option value="30">30 Minuten</option>
+        <option value="45">45 Minuten</option>
+        <option value="60" selected>60 Minuten</option>
+        <option value="90">90 Minuten</option>
+        <option value="120">120 Minuten</option>
+        <option value="180">180 Minuten</option>
+        <option value="240">240 Minuten</option>
+      </select>
+    </div>
+    <div class="field full">
+      <label>Notiz (optional)</label>
+      <textarea id="b_note" rows="2" placeholder="Weitere Infos, Adresse, etc…"></textarea>
+    </div>
+  </div>
+  <p id="titleError" class="error-msg hidden">Bitte gib eine Bezeichnung für den Termin ein.</p>
+</div>
+
+<!-- DATUM & ZEIT -->
+<div class="card">
+  <div class="cal-nav">
+    <button id="calPrev"><i class="ti ti-chevron-left"></i></button>
+    <span class="cal-title" id="calTitle"></span>
+    <button id="calNext"><i class="ti ti-chevron-right"></i></button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div id="timeSection" class="hidden" style="margin-top:20px;">
+    <hr class="divider" style="margin-top:0;" />
+    <div class="section-title" id="timeSectionTitle">Uhrzeit wählen</div>
+    <p class="hint" style="margin-bottom:10px;">Buchbar von 08:00 – 23:30 Uhr. Bereits belegte Zeiten (Mandanten-, Mitarbeiter- und Google-Kalender-Termine) sind ausgegraut.</p>
+    <div class="time-grid" id="timeGrid"></div>
+    <p id="noTimesMsg" class="hidden" style="color:var(--text3);font-size:13px;margin-top:8px;">
+      An diesem Tag sind keine freien Zeiten mehr verfügbar.
+    </p>
+  </div>
+</div>
+
+<!-- SUBMIT -->
+<div class="card" id="submitCard">
+  <p id="submitError" class="error-msg hidden">Fehler beim Speichern. Bitte versuche es erneut.</p>
+  <button class="btn-primary" id="submitBtn" disabled><i class="ti ti-calendar-plus"></i> Termin eintragen</button>
+</div>
+
+<!-- SUCCESS -->
+<div class="card hidden" id="stepSuccess" style="text-align:center;">
+  <i class="ti ti-circle-check success-icon"></i>
+  <h2 style="font-size:22px;margin-bottom:10px;color:var(--amber);">Termin eingetragen!</h2>
+  <p style="color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:18px;">
+    Dein persönlicher Termin wurde gespeichert und erscheint im Wochenplan.
+  </p>
+  <button class="btn-ghost" id="newBookingBtn" style="width:100%;"><i class="ti ti-plus"></i> Weiteren Termin eintragen</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, addDoc, getDocs,
+  query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBxiDftvsNOfElvrt8hhLaUA0HDoSyuK-g",
+  authDomain: "tracking-74513.firebaseapp.com",
+  projectId: "tracking-74513",
+  storageBucket: "tracking-74513.firebasestorage.app",
+  messagingSenderId: "621239887005",
+  appId: "1:621239887005:web:5b962abff5c9109a546074"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+const provider = new GoogleAuthProvider();
+const ALLOWED_EMAIL = "nawin.telis@gmail.com";
+
+// ── Grundkonfiguration ───────────────────────────────────────────────────
+// Buchbarer Bereich: 08:00 – 24:00 Uhr. Zwischen 00:00 und 08:00 Uhr
+// können KEINE Termine eingetragen werden (feste Sperrzeit).
+const DAY_START_MIN = 8 * 60;   // 08:00
+const DAY_END_MIN   = 24 * 60;  // 24:00
+
+const months   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const pad = n => String(n).padStart(2,'0');
+const $ = id => document.getElementById(id);
+
+let settings = null, takenSlots = [];
+let selectedApptType = null, selectedDate = null, selectedTime = null;
+let calYear, calMonth;
+
+// Standard-Terminarten, falls in den Tracker-Einstellungen keine hinterlegt sind
+const defaultApptTypes = [
+  { name: 'Arzttermin',  color: '#3b82f6', duration: 30 },
+  { name: 'Behörde',     color: '#f97316', duration: 45 },
+  { name: 'Sport',       color: '#22c55e', duration: 60 },
+  { name: 'Friseur',     color: '#ec4899', duration: 45 },
+];
+const freeAppt = { name: 'Sonstiges / Frei', color: '#f59e0b', duration: 60, isFree: true };
+
+// ── Lokale ISO-Zeit ohne Zeitzonen-Verschiebung ─────────────────────────
+function parseLocalISO(isoStr) {
+  const s = isoStr.slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  const [datePart, timePart] = s.split('T');
+  const [yr, mo, dy] = datePart.split('-').map(Number);
+  const [hr, mi] = timePart.split(':').map(Number);
+  return new Date(yr, mo - 1, dy, hr, mi).getTime();
+}
+
+function slotConflicts(isoStr, newDur) {
+  const newStart = parseLocalISO(isoStr);
+  const newEnd   = newStart + newDur * 60000;
+  return takenSlots.some(slot => {
+    const exStart  = parseLocalISO(slot.datetime);
+    const exEnd    = exStart + (slot.duration || 30) * 60000;
+    return newStart < exEnd && newEnd > exStart;
+  });
+}
+
+async function init() {
+  // Einstellungen laden (für Terminarten & Google-Kalender-Zugang)
+  try {
+    const settingsDoc = await getDoc(doc(db, 'publicSettings', 'main'));
+    if (settingsDoc.exists()) settings = settingsDoc.data();
+  } catch(e) { settings = {}; }
+
+  // Alle bestehenden Termine der nächsten 90 Tage laden (Tracker-Wochenplan)
+  try {
+    const nowLocal = new Date();
+    const toLocal  = new Date(Date.now() + 90 * 86400000);
+    const toLocalISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const from = toLocalISO(nowLocal);
+    const to   = toLocalISO(toLocal);
+    const q = query(collection(db, 'callSlots'), where('datetime', '>=', from), where('datetime', '<=', to));
+    const snap = await getDocs(q);
+    takenSlots = snap.docs.map(d => ({
+      datetime: d.data().datetime,
+      duration: d.data().apptDuration || 30
+    }));
+  } catch(e) { takenSlots = []; }
+
+  // Google-Kalender-Termine als belegte Zeiten ergänzen
+  try {
+    const gcalSlots = await loadGoogleCalendarBusySlots(settings);
+    takenSlots = [...takenSlots, ...gcalSlots];
+  } catch(e) { console.warn('Google Kalender konnte nicht geladen werden:', e.message); }
+
+  buildApptTypes();
+  initCalendar();
+
+  $('loadingScreen').classList.add('hidden');
+}
+
+// ── Terminarten (aus Tracker-Einstellungen + "Sonstiges") ──────────────────
+function buildApptTypes() {
+  const types = [...(settings?.apptTypes && settings.apptTypes.length ? settings.apptTypes : defaultApptTypes), freeAppt];
+  const wrap = $('apptTypeList');
+  wrap.innerHTML = '';
+  types.forEach(t => {
+    const pill = document.createElement('div');
+    pill.className = 'appt-type-pill';
+    pill.style.color = t.color;
+    pill.innerHTML = `
+      <span style="width:10px;height:10px;border-radius:3px;background:${t.color};display:inline-block;flex-shrink:0;"></span>
+      <span>${t.name}</span>
+      <span style="font-size:11px;opacity:.65;">· ${t.duration} Min.</span>`;
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.appt-type-pill').forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+      selectedApptType = t;
+      // Bezeichnung & Dauer übernehmen (Sonstiges = Feld leer lassen, Dauer behalten)
+      if (!t.isFree) {
+        $('b_title').value = t.name;
+      } else if ($('b_title').value === '') {
+        $('b_title').placeholder = 'z.B. Zahnarzt, Sport, Behördengang…';
+      }
+      $('b_duration').value = String(t.duration);
+      if (selectedDate) renderTimeSlots(selectedDate.year, selectedDate.month, selectedDate.day);
+      checkSubmitEnabled();
+    });
+    wrap.appendChild(pill);
+  });
+  wrap.querySelector('.appt-type-pill')?.click();
+}
+
+// ── Kalender ────────────────────────────────────────────────────────────
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCalendar();
+  $('calPrev').addEventListener('click', () => {
+    const now = new Date();
+    if (calYear === now.getFullYear() && calMonth === now.getMonth()) return;
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  });
+  $('calNext').addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar();
+  });
+}
+
+function renderCalendar() {
+  $('calTitle').textContent = `${months[calMonth]} ${calYear}`;
+  const grid = $('calGrid');
+  grid.innerHTML = '';
+  dayNames.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-day-header'; h.textContent = d; grid.appendChild(h);
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const leadingBlanks = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  const now = new Date();
+  $('calPrev').disabled = (calYear === now.getFullYear() && calMonth === now.getMonth());
+
+  for (let b = 0; b < leadingBlanks; b++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(calYear, calMonth, d);
+    const el = document.createElement('div');
+    el.textContent = d; el.className = 'cal-day';
+    const isPast  = date < today;
+    const isToday = date.toDateString() === today.toDateString();
+    const isSel   = selectedDate && selectedDate.year === calYear && selectedDate.month === calMonth && selectedDate.day === d;
+    // Jeder zukünftige Tag ist frei wählbar – keine Begrenzung durch
+    // Arbeitszeiten/dayConfigs aus den Einstellungen.
+    if (isPast) el.classList.add('past');
+    else el.classList.add('free');
+    if (isToday && !isPast) el.classList.add('today-ring');
+    if (isSel) el.classList.add('selected');
+    if (!isPast) el.addEventListener('click', () => selectDay(calYear, calMonth, d));
+    grid.appendChild(el);
+  }
+}
+
+function selectDay(y, m, d) {
+  selectedDate = { year:y, month:m, day:d }; selectedTime = null;
+  renderCalendar(); renderTimeSlots(y, m, d);
+  $('timeSection').classList.remove('hidden');
+  checkSubmitEnabled();
+  setTimeout(() => $('timeSection').scrollIntoView({ behavior:'smooth', block:'nearest' }), 100);
+}
+
+function renderTimeSlots(y, m, d) {
+  const date = new Date(y, m, d);
+  const dur = parseInt($('b_duration').value, 10) || 30;
+  const grid = $('timeGrid');
+  grid.innerHTML = ''; $('noTimesMsg').classList.add('hidden');
+
+  const now = new Date();
+  const slots = [];
+  for (let t = DAY_START_MIN; t + dur <= DAY_END_MIN; t += 30) {
+    const slotH = Math.floor(t/60), slotMin = t%60;
+    const timeStr = `${pad(slotH)}:${pad(slotMin)}`;
+    const isoStr  = `${y}-${pad(m+1)}-${pad(d)}T${timeStr}`;
+    const slotDate = new Date(y, m, d, slotH, slotMin);
+    if (slotDate <= now) continue;
+    const isTaken = slotConflicts(isoStr, dur);
+    slots.push({ timeStr, isoStr, isTaken });
+  }
+
+  $('timeSectionTitle').textContent = `Uhrzeit – ${date.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'})}`;
+  if (slots.length === 0) { $('noTimesMsg').classList.remove('hidden'); selectedTime = null; checkSubmitEnabled(); return; }
+
+  slots.forEach(sl => {
+    const btn = document.createElement('div');
+    btn.className = 'time-slot' + (sl.isTaken ? ' taken' : '');
+    btn.textContent = sl.timeStr + ' Uhr';
+    if (sl.timeStr === selectedTime) btn.classList.add('selected');
+    if (!sl.isTaken) {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.time-slot').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedTime = sl.timeStr;
+        checkSubmitEnabled();
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+// Bei Änderung der Dauer: Zeitraster neu berechnen (Auswahl kann ungültig werden)
+$('b_duration').addEventListener('change', () => {
+  selectedTime = null;
+  if (selectedDate) renderTimeSlots(selectedDate.year, selectedDate.month, selectedDate.day);
+  checkSubmitEnabled();
+});
+$('b_title').addEventListener('input', () => {
+  $('titleError').classList.add('hidden');
+  checkSubmitEnabled();
+});
+
+function checkSubmitEnabled() {
+  const ok = !!($('b_title').value.trim() && selectedDate && selectedTime);
+  $('submitBtn').disabled = !ok;
+}
+
+// ── Speichern ───────────────────────────────────────────────────────────
+$('submitBtn').addEventListener('click', async () => {
+  const title = $('b_title').value.trim();
+  if (!title) { $('titleError').classList.remove('hidden'); return; }
+  if (!selectedDate || !selectedTime) return;
+
+  $('submitBtn').disabled = true;
+  $('submitBtn').innerHTML = '<i class="ti ti-loader" style="display:inline-block;animation:spinInline .7s linear infinite;"></i> Wird gespeichert…';
+  $('submitError').classList.add('hidden');
+
+  const { year:y, month:m, day:d } = selectedDate;
+  const iso  = `${y}-${pad(m+1)}-${pad(d)}T${selectedTime}:00`;
+  const dur  = parseInt($('b_duration').value, 10) || 30;
+  const note = $('b_note').value.trim();
+  const color = '#f59e0b'; // private Termine werden im Tracker einheitlich amber dargestellt
+
+  try {
+    await addDoc(collection(db, 'callSlots'), {
+      datetime: iso,
+      type: 'fix',
+      status: 'confirmed',
+      confirmedAt: serverTimestamp(),
+      privateBooking: true,
+      bookedBy: title,
+      apptType: selectedApptType && !selectedApptType.isFree ? selectedApptType.name : title,
+      apptDuration: dur,
+      apptColor: color,
+      note: note || title,
+      source: 'eigener-termin',
+      createdAt: serverTimestamp(),
+    });
+
+    // Lokal als belegt vormerken, falls direkt ein weiterer Termin angelegt wird
+    takenSlots.push({ datetime: iso, duration: dur });
+
+    $('submitCard').classList.add('hidden');
+    $('stepSuccess').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch(e) {
+    console.error(e);
+    $('submitError').classList.remove('hidden');
+    $('submitBtn').disabled = false;
+    $('submitBtn').innerHTML = '<i class="ti ti-calendar-plus"></i> Termin eintragen';
+  }
+});
+
+$('newBookingBtn').addEventListener('click', () => {
+  $('stepSuccess').classList.add('hidden');
+  $('submitCard').classList.remove('hidden');
+  $('b_title').value = '';
+  $('b_note').value = '';
+  selectedTime = null;
+  $('submitBtn').innerHTML = '<i class="ti ti-calendar-plus"></i> Termin eintragen';
+  if (selectedDate) renderTimeSlots(selectedDate.year, selectedDate.month, selectedDate.day);
+  checkSubmitEnabled();
+  document.querySelector('.appt-type-pill')?.click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── Google Kalender: belegte Zeiten als ISO-Strings laden ──
+async function loadGoogleCalendarBusySlots(settings) {
+  if (!settings) return [];
+  const calendars = [
+    { id: settings.gcalId,  key: settings.gcalKey  },
+    { id: settings.gcalId2, key: settings.gcalKey2 },
+  ].filter(c => c.id && c.key);
+  if (calendars.length === 0) return [];
+
+  const timeMin = new Date().toISOString();
+  const timeMax = new Date(Date.now() + 90 * 86400000).toISOString();
+  const busyIsos = [];
+
+  for (const cal of calendars) {
+    try {
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events`
+        + `?key=${cal.key}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+        + `&singleEvents=true&orderBy=startTime&maxResults=250`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const ev of data.items || []) {
+        if (ev.start?.date && !ev.start?.dateTime) {
+          const startDay = new Date(ev.start.date);
+          const endDay   = new Date(ev.end?.date || ev.start.date);
+          for (let dd = new Date(startDay); dd < endDay; dd.setDate(dd.getDate() + 1)) {
+            for (let h = 0; h < 24; h++) {
+              for (const mm of [0, 30]) {
+                const iso = `${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())}T${pad(h)}:${pad(mm)}`;
+                busyIsos.push({ datetime: iso, duration: 30 });
+              }
+            }
+          }
+          continue;
+        }
+        if (ev.start?.dateTime) {
+          const start = new Date(ev.start.dateTime);
+          const end   = new Date(ev.end?.dateTime || ev.start.dateTime);
+          const durationMin = Math.max(30, Math.ceil((end - start) / 60000));
+          const iso = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`;
+          busyIsos.push({ datetime: iso, duration: durationMin });
+        }
+      }
+    } catch(e) {
+      console.warn(`GCal busy load fehlgeschlagen (${cal.id}):`, e.message);
+    }
+  }
+  return busyIsos;
+}
+
+// ── Zugangsschutz: nur der autorisierte Google-Account darf diese Seite nutzen ──
+function showAccessLogin(message) {
+  $('loadingScreen').innerHTML = `
+    <div style="text-align:center;max-width:320px;padding:0 16px;">
+      <div style="font-size:40px;margin-bottom:14px;">🔐</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:20px;">${message || 'Privater Zugang – bitte anmelden.'}</p>
+      <button id="accessLoginBtn" style="
+        display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+        padding:12px 18px;border-radius:10px;border:1px solid var(--border2);
+        background:var(--navy-mid);color:var(--text);font-size:14px;font-weight:500;
+        cursor:pointer;font-family:inherit;">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Mit Google anmelden
+      </button>
+    </div>
+  `;
+  $('loadingScreen').classList.remove('hidden');
+  document.getElementById('accessLoginBtn').addEventListener('click', async () => {
+    try { await signInWithPopup(auth, provider); }
+    catch(e) { console.warn('Anmeldung fehlgeschlagen:', e.message); }
+  });
+}
+
+onAuthStateChanged(auth, (user) => {
+  if (user && user.email === ALLOWED_EMAIL) {
+    init();
+  } else {
+    if (user) signOut(auth); // eingeloggt, aber falscher Account
+    showAccessLogin(user ? 'Zugriff verweigert – falscher Account.' : undefined);
+  }
+});
+</script>
+</body>
+</html>
