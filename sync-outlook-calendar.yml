@@ -1,0 +1,31 @@
+name: Outlook Kalender Sync
+
+on:
+  schedule:
+    # alle 30 Minuten
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}   # ermöglicht manuelles Starten über den "Run workflow"-Button auf GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        run: npm install node-ical googleapis
+
+      - name: Outlook → Google Calendar synchronisieren
+        env:
+          OUTLOOK_ICS_URL:     ${{ secrets.OUTLOOK_ICS_URL }}
+          GOOGLE_CLIENT_ID:     ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          TARGET_CALENDAR_ID:   nawin.telis@gmail.com
+        run: node scripts/sync-outlook-calendar.js
